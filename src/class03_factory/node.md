@@ -32,3 +32,89 @@ simpleVehicleFactory.createCar().go();
 食品是现实生活中存在的，但是它又不是具体的事物，所以用抽象类来表示
 
 Moveable是指可移动的东西，这是某个东西的属性，这个东西可能不止一种属性，我们可以使用多个接口来表示
+### SpringBean中关于工厂模式的运用
+1.applicationContext.xml
+```text
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <bean id="vehicle" class="com.zzs.spring.factory.Car"></bean>
+
+    <!-- more bean definitions go here -->
+</beans>
+```
+2.BeanFactory.java
+```text
+public interface BeanFactory {
+    Object getBean(String id);
+}
+```
+3.ClassPathXmlApplicationContext.java
+```text
+public class ClassPathXmlApplicationContext implements BeanFactory {
+     
+    private Map<String, Object> container = new HashMap<String, Object>();
+ 
+    public ClassPathXmlApplicationContext(String fileName) {
+         
+        //读取xml文件
+        SAXBuilder sb = new SAXBuilder();
+        Document doc;
+        try {
+            // doc = sb.build(fileName);
+            // Test.java要改为BeanFactory factory = new ClassPathXmlApplicationContext("com/zzs/spring/factory/applicationContext.xml");
+            // 否则会出现“java.net.MalformedURLException”
+            doc = sb.build(this.getClass().getClassLoader().getResourceAsStream(fileName));
+            Element root = doc.getRootElement();
+            List list = XPath.selectNodes(root, "/beans/bean");
+ 
+            for (int i = 0; i < list.size(); i++) {
+                Element element = (Element) list.get(i);
+                String id = element.getAttributeValue("id");
+                String clazz = element.getAttributeValue("class");
+                
+                // 利用反射生成例,然后装进容器
+                Object o = Class.forName(clazz).newInstance();
+                container.put(id, o);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+ 
+    @Override
+    public Object getBean(String id) {
+        return container.get(id);
+    }
+}
+```
+4.Movable.java
+```text
+public interface Movable {
+    void run();
+}
+```
+5.Car.java
+```text
+public class Car implements Movable {
+ 
+    public void run() {
+        System.out.println("Car running...............");
+    }
+}
+```
+6.Test.java
+public class Test {
+
+    @org.junit.Test
+    public void test() {
+        //BeanFactory factory = new ClassPathXmlApplicationContext("applicationContext.xml");
+        BeanFactory factory = new ClassPathXmlApplicationContext("com/zzs/spring/factory/applicationContext.xml");
+        Object o = factory.getBean("vehicle");
+        Movable m = (Movable) o;
+        m.run();
+    }
+}
