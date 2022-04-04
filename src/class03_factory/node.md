@@ -106,8 +106,8 @@ public class Car implements Movable {
     }
 }
 ```
-```text
 6.Test.java
+```text
 public class Test {
 
     @org.junit.Test
